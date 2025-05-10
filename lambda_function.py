@@ -4,29 +4,28 @@ import base64
 import os
 import boto3
 import re
+import string
 
 ALPHA_PATTERN = re.compile(r"^[A-Za-z ]+$")
+
 def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
+        
         if "mood" in body:
-            raw_mood = body['mood']
+            raw_mood = body["mood"]
         elif "image" in body:
-            image_data = base64.b64decode(body['image'])
+            image_data = base64.b64decode(body["image"])
             raw_mood = get_mood_from_image(image_data)
         else:
             return _bad_request("Missing mood or image")
-            '''
-            return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Missing 'mood' or 'image'"}) }
-            '''
 
-        #-------------ensures that mood is letters only and non-empty string-----------
+        # validate mood
         if not isinstance(raw_mood, str):
             return _bad_request("'mood' must be a string, e.g. \"chill\"")
 
         raw_mood = raw_mood.strip()
+        raw_mood = ''.join(c for c in raw_mood if c.isalpha() or c.isspace())
         if not raw_mood:
             return _bad_request("'mood' must be a non-empty string")
 
@@ -37,6 +36,7 @@ def lambda_handler(event, context):
 
         mood = raw_mood.lower()
 
+        # get Spotify token
         client_id = os.environ['SPOTIFY_CLIENT_ID']
         client_secret = os.environ['SPOTIFY_CLIENT_SECRET']
         auth_str = f"{client_id}:{client_secret}"
@@ -49,10 +49,10 @@ def lambda_handler(event, context):
         )
 
         token = token_res.json().get("access_token")
-
         if not token:
             return {"statusCode": 500, "body": json.dumps({"error": "Spotify auth failed"})}
 
+        # search songs
         search_url = f"https://api.spotify.com/v1/search?q={mood}&type=track&limit=5"
         res = requests.get(
             search_url,
@@ -87,35 +87,43 @@ def get_mood_from_image(image_data):
     rekognition = boto3.client('rekognition')
     labels = rekognition.detect_labels(Image={'Bytes': image_data}, MaxLabels=10)
     label_names = [label['Name'] for label in labels['Labels']]
-    
-    # Use Bedrock (Claude v2) to generate mood
+    print("Detected labels:", label_names)
+
+    # Use Claude 3.5 Haiku on Bedrock
     bedrock = boto3.client('bedrock-runtime', region_name='us-west-2')
-    
+
     prompt = (
-        f"Given these image labels: {label_names}, "
-        "return the most likely mood from this list ONLY: [chill, relaxing, happy, energetic, romantic, melancholy]. "
-        "Only respond with one word from the list. Nothing else."
-    )
+    f"The following image labels were extracted: {', '.join(label_names)}. "
+    "Based on these labels, infer a single mood or feeling the image might evoke. "
+    "Respond with just one or two descriptive words—no explanations, no extra context.")
+
 
     body = {
-        "prompt": f"\n\nHuman: {prompt}\n\nAssistant:",
-        "max_tokens_to_sample": 50,
+        "anthropic_version": "bedrock-2023-05-31",
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "max_tokens": 50,
         "temperature": 0.5,
         "top_k": 250,
-        "top_p": 1.0,
-        "stop_sequences": ["\n\n"]
+        "top_p": 1.0
     }
 
     response = bedrock.invoke_model(
-        modelId="anthropic.claude-v2",  # Claude model
+        modelId="anthropic.claude-3-5-haiku-20241022-v1:0",
         contentType="application/json",
         accept="application/json",
         body=json.dumps(body)
     )
 
-    result = json.loads(response['body'].read())
-    mood = result['completion'].strip().lower()
-    return mood
+    result = json.loads(response["body"].read())
+    mood_text = result["content"][0]["text"].strip()
+    print("Claude mood output:", mood_text)
+    return mood_text.lower()
+
 
 def _bad_request(msg):
     return {
