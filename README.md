@@ -12,7 +12,7 @@ A React + AWS-powered site that recommends songs based on your mood or an upload
 
 ## Tech Stack
 
-- **Frontend**: React.js (Vite)
+- **Frontend**: React.js
 - **Backend**: AWS Lambda (Python), AWS Bedrock Claude, AWS Rekognition
 - **APIs**: Spotify Web API
 
@@ -23,3 +23,10 @@ A React + AWS-powered site that recommends songs based on your mood or an upload
 ```bash
 git clone https://github.com/ishakotalwar/CloudHacks-musicgenerator.git
 cd CloudHacks-musicgenerator
+
+### 2. Set up frontend
+cd frontend
+npm install
+npm run dev
+npm start
+
