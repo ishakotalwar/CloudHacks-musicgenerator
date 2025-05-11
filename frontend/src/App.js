@@ -11,6 +11,14 @@ function App() {
     setImage(e.target.files[0]);
   };
 
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+    });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -18,9 +26,7 @@ function App() {
     setClaudeMood('');
 
     const formData = {
-      ...(image
-        ? { image: await toBase64(image) }
-        : { mood }),
+      ...(image ? { image: await toBase64(image) } : { mood }),
     };
 
     const res = await fetch('https://p14awkwqt1.execute-api.us-west-2.amazonaws.com/recommend', {
@@ -35,16 +41,61 @@ function App() {
     setLoading(false);
   };
 
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
+  const handleLike = async (song) => {
+    const existingTitles = songs.map(s => ({ title: s.name }));
+    const res = await fetch('https://p14awkwqt1.execute-api.us-west-2.amazonaws.com/similar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: song.name,
+        artist: song.artist,
+        existing: existingTitles
+      }),
     });
+    const data = await res.json();
+    if (data.songs) {
+      const newUnique = data.songs.filter(newSong =>
+        !songs.some(existing => existing.name === newSong.name)
+      ).slice(0, 5); // only take 2 new ones
+      setSongs(prev => [...prev, ...newUnique]);
+    }
+  };
+
+  const handleDislike = async (songIndex) => {
+    const song = songs[songIndex];
+    const existingTitles = songs.map(s => ({ title: s.name }));
+    const res = await fetch('https://p14awkwqt1.execute-api.us-west-2.amazonaws.com/similar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: song.name,
+        artist: song.artist,
+        existing: existingTitles
+      }),
+    });
+    const data = await res.json();
+    if (data.songs && data.songs.length > 0) {
+      const replacement = data.songs.find(newSong =>
+        !songs.some(existing => existing.name === newSong.name)
+      );
+      if (replacement) {
+        const updated = [...songs];
+        updated[songIndex] = replacement;
+        setSongs(updated);
+      }
+    }
+  };
+
+  const chunkArray = (arr, size) => {
+    const chunks = [];
+    for (let i = 0; i < arr.length; i += size) {
+      chunks.push(arr.slice(i, i + size));
+    }
+    return chunks;
+  };
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
+    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
       <h1 style={{ marginBottom: '1rem' }}>🎵 Music Moodboard</h1>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: '2rem' }}>
@@ -66,59 +117,91 @@ function App() {
       </form>
 
       {claudeMood && (
-        <p><strong>Claude interpreted the mood as:</strong> <em>{claudeMood}</em></p>
+        <p>
+          <strong>Claude interpreted the mood as:</strong>{' '}
+          <em>{claudeMood}</em>
+        </p>
       )}
 
       {loading && <p style={{ fontSize: '1.2rem' }}>🎧 Finding songs for your vibe...</p>}
 
-      <ul style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '1.5rem',
-        listStyleType: 'none',
-        padding: 0,
-        justifyContent: 'flex-start'
-      }}>
-        {songs.map((song, idx) => (
-          <li
-            key={idx}
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              padding: '1rem',
-              width: '200px',
-              textAlign: 'center',
-              backgroundColor: 'white',
-              boxShadow: '2px 2px 12px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1.0)'}
-          >
-            <img
-              src={song.image}
-              alt={song.name}
-              style={{ width: '100%', borderRadius: '6px', marginBottom: '0.75rem' }}
-            />
-            <p style={{ fontWeight: 'bold' }}>{song.name}</p>
-            <p style={{ color: '#555', fontSize: '0.9rem' }}>{song.artist}</p>
-            <a href={song.url} target="_blank" rel="noreferrer">
-              <button style={{
-                marginTop: '0.75rem',
-                padding: '0.4rem 1rem',
-                backgroundColor: '#1DB954',
-                color: 'white',
-                border: 'none',
-                borderRadius: '20px',
-                cursor: 'pointer'
-              }}>
-                ▶️ Listen on Spotify
-              </button>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {chunkArray(songs, 5).map((row, rowIdx) => (
+        <ul
+          key={rowIdx}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '1rem',
+            listStyleType: 'none',
+            padding: 0,
+            marginBottom: '2rem',
+            flexWrap: 'nowrap',
+          }}
+        >
+          {row.map((song, idx) => {
+            const songIndex = rowIdx * 5 + idx;
+            return (
+              <li
+                key={idx}
+                style={{
+                  border: '1px solid #ccc',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  width: '200px',
+                  textAlign: 'center',
+                  boxShadow: '2px 2px 10px rgba(0,0,0,0.1)',
+                }}
+              >
+                <img
+                  src={song.image}
+                  alt={song.name}
+                  style={{ width: '100%', borderRadius: '6px', marginBottom: '0.5rem' }}
+                />
+                <p><strong>{song.name}</strong></p>
+                <p style={{ color: '#555', fontSize: '0.9rem' }}>{song.artist}</p>
+                <a href={song.url} target="_blank" rel="noreferrer">
+                  <button
+                    style={{
+                      backgroundColor: '#1DB954',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      marginBottom: '0.5rem'
+                    }}
+                  >
+                    ▶ Listen on Spotify
+                  </button>
+                </a>
+                <div>
+                  <button
+                    onClick={() => handleLike(song)}
+                    style={{
+                      marginRight: '0.5rem',
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    👍
+                  </button>
+                  <button
+                    onClick={() => handleDislike(songIndex)}
+                    style={{
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    👎
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ))}
     </div>
   );
 }
