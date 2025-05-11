@@ -32,3 +32,4 @@ cd frontend
 npm install
 npm start
 ```
+This should open the app locally.
