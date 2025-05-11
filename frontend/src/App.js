@@ -14,6 +14,7 @@ function App() {
   const [theme, setTheme] = useState('light');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [loadingIndexes, setLoadingIndexes] = useState([]);
+  const fileInputRef = useRef(null);
   const resultsRef = useRef(null);
   const [likeLoading, setLikeLoading] = useState('');
 
@@ -179,7 +180,7 @@ function App() {
     setBgColor(newTheme === 'dark' ? '#2E2E2E' : '#ffffff');
   };
 
-  return (
+  return(
     <div style={{
       minHeight: '100vh',
       padding: '2rem',
@@ -216,6 +217,29 @@ function App() {
           animation: spin 1s linear infinite;
           margin: 1.5rem auto;
         }
+        
+        .song-card:hover {
+          transform: scale(1.03);
+          box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .reaction-button {
+          background: none;
+          border: none;
+          font-size: 1.3rem;
+          cursor: pointer;
+          transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .like-button:hover {
+          transform: scale(1.2);
+          color: #2e7d32;
+        }
+
+        .dislike-button:hover {
+          transform: scale(1.2);
+          color: #c62828;
+        }
           
       `}</style>
 
@@ -238,9 +262,9 @@ function App() {
 
       <h1 style={{ marginBottom: '1rem' }}>🎵 Music Moodboard</h1>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: '2rem' }}>
+      <form onSubmit={handleSubmit} style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <div style={{ marginBottom: '1rem' }}>
-          <label>Enter mood: </label>
+          <label style={{ marginRight: '0.5rem' }}>Enter mood:</label>
           <input
             value={mood}
             onChange={(e) => {
@@ -250,14 +274,61 @@ function App() {
                 setError('');
               }
             }}
-            style={{ marginLeft: '0.5rem', padding: '0.25rem', borderRadius: '4px', border: `1px solid ${isDark ? '#444' : '#ccc'}`, backgroundColor: isDark ? '#1e1e1e' : '#fff', color: isDark ? '#f1f1f1' : '#111' }}
+            style={{
+              padding: '0.25rem',
+              borderRadius: '4px',
+              border: `1px solid ${isDark ? '#444' : '#ccc'}`,
+              backgroundColor: isDark ? '#1e1e1e' : '#fff',
+              color: isDark ? '#f1f1f1' : '#111'
+            }}
           />
         </div>
         <div style={{ marginBottom: '1rem' }}>
-          <label>Or upload image: </label>
-          <input type="file" accept="image/*" onChange={handleImageUpload} style={{ color: isDark ? '#f1f1f1' : '#111' }} />
+          <label style={{ marginRight: '0.5rem' }}>Or upload image:</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            ref={fileInputRef}
+            style={{ color: isDark ? '#f1f1f1' : '#111' }}
+          />
+          {image && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setImage(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
+                style={{
+                  backgroundColor: '#e57373',
+                  color: '#fff',
+                  padding: '0.3rem 0.8rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
+              >
+                ❌ Remove Image
+              </button>
+            </div>
+          )}
         </div>
-        <button type="submit" disabled={loading} style={{ backgroundColor: '#7e57c2', color: '#fff', padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            backgroundColor: '#7e57c2',
+            color: '#fff',
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
           {loading ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               Generating <span className="spinner"></span>
@@ -321,52 +392,57 @@ function App() {
       }}>
         {songs.map((song, idx) => (
           <li key={idx} style={{
-            border: `1px solid ${isDark ? '#555' : '#ccc'}`,
-            borderRadius: '8px',
-            padding: '1rem',
-            textAlign: 'center',
-            backgroundColor: isDark ? '#1e1e1e' : 'white',
-            boxShadow: '2px 2px 12px rgba(0,0,0,0.1)',
-            transition: 'transform 0.2s',
-            cursor: 'pointer'
-          }}>
-            {loadingIndexes.includes(idx) ? (
-                <div className="image-spinner"></div>
-              ) : (
-                <img src={song.image} alt={song.name} style={{ width: '100%', borderRadius: '6px', marginBottom: '0.75rem' }} />
-              )}
-            <p style={{ fontWeight: 'bold' }}>{song.name}</p>
-            <p style={{ color: isDark ? '#ccc' : '#555', fontSize: '0.9rem' }}>{song.artist}</p>
-            <a href={song.url} target="_blank" rel="noreferrer">
-              <button style={{
-                marginTop: '0.75rem',
-                padding: '0.4rem 1rem',
-                backgroundColor: '#1DB954',
-                color: 'white',
-                border: 'none',
-                borderRadius: '20px',
-                cursor: 'pointer'
-              }}>
-                ▶️ Listen on Spotify
-              </button>
-            </a>
-            <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-              <button onClick={() => handleLike(song)} style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '1.3rem',
-                cursor: 'pointer',
-                color: isDark ? '#81c784' : '#2e7d32'
-              }}>👍</button>
-              <button onClick={() => handleDislike(idx)} style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '1.3rem',
-                cursor: 'pointer',
-                color: isDark ? '#e57373' : '#c62828'
-              }}>👎</button>
-            </div>
-          </li>
+  border: `1px solid ${isDark ? '#555' : '#ccc'}`,
+  borderRadius: '8px',
+  padding: '1rem',
+  textAlign: 'center',
+  backgroundColor: isDark ? '#1e1e1e' : 'white',
+  boxShadow: '2px 2px 12px rgba(0,0,0,0.1)',
+  cursor: 'pointer',
+  transition: 'transform 0.2s, box-shadow 0.2s',
+  ...(loadingIndexes.includes(idx) ? {} : {
+    ':hover': {
+      transform: 'scale(1.03)',
+      boxShadow: '4px 4px 16px rgba(0,0,0,0.15)'
+    }
+  })
+}} className="song-card">
+  {loadingIndexes.includes(idx) ? (
+    <div className="image-spinner"></div>
+  ) : (
+    <img src={song.image} alt={song.name} style={{ width: '100%', borderRadius: '6px', marginBottom: '0.75rem' }} />
+  )}
+  <p style={{ fontWeight: 'bold' }}>{song.name}</p>
+  <p style={{ color: isDark ? '#ccc' : '#555', fontSize: '0.9rem' }}>{song.artist}</p>
+  <a href={song.url} target="_blank" rel="noreferrer">
+    <button style={{
+      marginTop: '0.75rem',
+      padding: '0.4rem 1rem',
+      backgroundColor: '#1DB954',
+      color: 'white',
+      border: 'none',
+      borderRadius: '20px',
+      cursor: 'pointer'
+    }}>
+      ▶️ Listen on Spotify
+    </button>
+  </a>
+  <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+    <button
+      onClick={() => handleLike(song)}
+      className="reaction-button like-button"
+    >
+      👍
+    </button>
+    <button
+      onClick={() => handleDislike(idx)}
+      className="reaction-button dislike-button"
+    >
+      👎
+    </button>
+  </div>
+</li>
+
         ))}
       </ul>
     </div>
