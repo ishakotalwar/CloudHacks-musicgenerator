@@ -1,8 +1,8 @@
 import json
-import requests
+import requests # type: ignore
 import base64
 import os
-import boto3
+import boto3 # type: ignore
 import re
 import string
 

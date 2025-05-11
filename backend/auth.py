@@ -1,4 +1,4 @@
-import os, json, time, boto3, base64, requests
+import os, json, time, boto3, base64, requests # type: ignore
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("SpotifyTokens")
