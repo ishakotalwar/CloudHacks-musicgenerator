@@ -38,7 +38,8 @@ def fetch_spotify_details(suggestions, token):
                 "name": t["name"],
                 "artist": t["artists"][0]["name"],
                 "url": t["external_urls"]["spotify"],
-                "image": t["album"]["images"][0]["url"]
+                "image": t["album"]["images"][0]["url"],
+                "preview": t.get("preview_url")
             })
     return new_songs
 
@@ -94,7 +95,8 @@ def lambda_handler(event, context):
                 "name": t["name"],
                 "artist": t["artists"][0]["name"],
                 "url": t["external_urls"]["spotify"],
-                "image": t["album"]["images"][0]["url"]
+                "image": t["album"]["images"][0]["url"],
+                "preview": t.get("preview_url")
                 })
 
         return {
@@ -144,6 +146,7 @@ def get_songs_from_mood_claude(mood_input):
     for line in text.strip().splitlines():
         if " by " in line:
             title, artist = line.split(" by ", 1)
+            title = title.lstrip('- ').strip()
             suggestions.append({"title": title.strip(), "artist": artist.strip()})
     return suggestions
 
@@ -202,7 +205,7 @@ def handle_similar_songs(event):
             return _bad_request("Missing song title or artist.")
 
         prompt = (
-            f"Suggest 5 songs that are similar to '{title}' by {artist}. "
+            f"Suggest 10 songs that are similar to '{title}' by {artist}. "
             "Respond as a list like:\n- Song Title by Artist Name\nOnly return the list."
         )
 
