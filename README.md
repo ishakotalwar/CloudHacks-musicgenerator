@@ -26,7 +26,9 @@ cd CloudHacks-musicgenerator
 ```
 
 ### 2. Set up frontend
+
+```bash
 cd frontend
 npm install
 npm start
-
+```
