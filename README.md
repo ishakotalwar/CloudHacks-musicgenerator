@@ -23,8 +23,9 @@ A React + AWS-powered site that recommends songs based on your mood or an upload
 ```bash
 git clone https://github.com/ishakotalwar/CloudHacks-musicgenerator.git
 cd CloudHacks-musicgenerator
+```
 
-# 2. Set up frontend
+### 2. Set up frontend
 cd frontend
 npm install
 npm start
