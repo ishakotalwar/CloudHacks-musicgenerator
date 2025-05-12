@@ -12,9 +12,14 @@ A React + AWS-powered site that recommends songs based on your mood or an upload
 
 ## Tech Stack
 
-- **Frontend**: React.js
-- **Backend**: AWS Lambda (Python), AWS Bedrock Claude, AWS Rekognition
+- **Frontend**: React.js, HTML, CSS
+- **Backend**: AWS Lambda (Python), AWS Bedrock Claude, AWS Rekognition, API Gateway
 - **APIs**: Spotify Web API
+
+## Contributions
+- **Frontend**: Kaelyn Sung, Isha Kotalwar
+- **Backend**: Isha Kotalwar
+- **Design**: Rachel Ruan
 
 ## Running Locally
 
